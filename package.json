@@ -2,5 +2,13 @@
   "name": "decode-ico",
   "version": "0.0.0",
   "license": "MIT",
-  "repository": "LinusU/decode-ico"
+  "repository": "LinusU/decode-ico",
+  "scripts": {
+    "test": "standard && mocha"
+  },
+  "devDependencies": {
+    "lodepng": "^0.2.2",
+    "mocha": "^3.5.0",
+    "standard": "^10.0.3"
+  }
 }
