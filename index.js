@@ -12,6 +12,10 @@ class Bitmap {
     this.stride = makeDivisibleByFour(width * this.depth / 8)
     this.size = (this.stride * height)
     this.data = data.slice(this.offset, this.offset + this.size)
+
+    if (this.size !== this.data.byteLength) {
+      throw new Error('Truncated bitmap data')
+    }
   }
 
   get (x, y, channel) {
