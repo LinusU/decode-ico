@@ -6,8 +6,9 @@ const decodeIco = require('../')
 const source = fs.readFileSync(process.argv[2])
 const images = decodeIco(source)
 
-for (const image of images) {
-  const postfix = `-${image.width}x${image.height}.png`
+for (let idx = 0; idx < images.length; idx++) {
+  const image = images[idx]
+  const postfix = `-${idx++}.png`
 
   if (image.type === 'png') {
     fs.writeFile(`${process.argv[3]}${postfix}`, image.data, (err) => {
