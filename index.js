@@ -153,10 +153,6 @@ module.exports = function decodeIco (input) {
   return Array.from({ length }, (_, idx) => {
     const width = input.readUInt8(6 + (16 * idx) + 0, true)
     const height = input.readUInt8(6 + (16 * idx) + 1, true)
-    // const nColors = input.readUInt8(6 + (16 * idx) + 2, true)
-    // const reserved = input.readUInt8(6 + (16 * idx) + 3, true)
-    // const nPlanes = input.readUInt16LE(6 + (16 * idx) + 4, true)
-    // const colorDepth = input.readUInt16LE(6 + (16 * idx) + 6, true)
     const size = input.readUInt32LE(6 + (16 * idx) + 8, true)
     const offset = input.readUInt32LE(6 + (16 * idx) + 12, true)
     const data = input.slice(offset, offset + size)
@@ -178,29 +174,5 @@ module.exports = function decodeIco (input) {
       type: 'bmp',
       width: bmp.width
     }
-
-    // const header = Buffer.allocUnsafe(14)
-
-    // const dibHeaderSize = data.readUInt32LE(0)
-
-    // header.write('BM', 0, 2)
-    // header.writeUInt32LE(14 + data.byteLength, 2, true)
-    // header.writeUInt16LE(0, 6, true)
-    // header.writeUInt16LE(0, 8, true)
-    // header.writeUInt32LE(14 + dibHeaderSize, 10, true)
-
-    // return {
-    //   width: (width === 0 ? 256 : width),
-    //   height: (height === 0 ? 256 : height),
-    //   nColors,
-    //   reserved,
-    //   nPlanes,
-    //   colorDepth,
-    //   size,
-    //   offset,
-    //   // header,
-    //   stuff,
-    //   data
-    // }
   })
 }
