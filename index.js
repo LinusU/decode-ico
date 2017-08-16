@@ -129,9 +129,8 @@ function decodeBmp ({ data, width, height }) {
   return { width, height, data: result }
 }
 
-module.exports = function decodeIco (_input) {
-  // input = Buffer.isBuffer(input) ? input : Buffer.from(input)
-  const input = Buffer.from(_input)
+module.exports = function decodeIco (input) {
+  input = Buffer.isBuffer(input) ? input : Buffer.from(input)
 
   if (input.byteLength < 6) {
     throw new Error('Truncated header')
