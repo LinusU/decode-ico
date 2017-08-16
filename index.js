@@ -23,9 +23,23 @@ class Bitmap {
 
     if (this.depth === 1) {
       const slice = this.data[(y * this.stride) + (x / 8 | 0)]
-      const mask = 1 << (7 - (x % 8))
+      const mask = 1 << (7 - (x % 8) * 1)
 
-      return (slice & mask) ? 0 : 255
+      return (slice & mask) >> (7 - (x % 8) * 1)
+    }
+
+    if (this.depth === 2) {
+      const slice = this.data[(y * this.stride) + (x / 4 | 0)]
+      const mask = 3 << (6 - (x % 4) * 2)
+
+      return (slice & mask) >>> (6 - (x % 4) * 2)
+    }
+
+    if (this.depth === 4) {
+      const slice = this.data[(y * this.stride) + (x / 2 | 0)]
+      const mask = 15 << (4 - (x % 2) * 4)
+
+      return (slice & mask) >>> (4 - (x % 2) * 4)
     }
 
     return this.data[(y * this.stride) + (x * (this.depth / 8)) + idx]
@@ -45,6 +59,60 @@ function isPng (data, offset) {
   )
 }
 
+function decodeTrueColorBmp (data, offset, { width, height, colorDepth }) {
+  if (colorDepth !== 32 && colorDepth !== 24) {
+    throw new Error(`A color depth of ${colorDepth} is not supported`)
+  }
+
+  const xor = new Bitmap(data, offset, { width, height, colorDepth, format: 'BGRA' })
+  const and = new Bitmap(data, xor.offset + xor.size, { width, height, colorDepth: 1, format: 'A' })
+
+  const result = Buffer.alloc(width * height * 4)
+
+  let idx = 0
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      result[idx++] = xor.get(x, height - y - 1, 'R')
+      result[idx++] = xor.get(x, height - y - 1, 'G')
+      result[idx++] = xor.get(x, height - y - 1, 'B')
+
+      if (colorDepth === 32) {
+        result[idx++] = xor.get(x, height - y - 1, 'A')
+      } else {
+        result[idx++] = and.get(x, height - y - 1, 'A') ? 0 : 255
+      }
+    }
+  }
+
+  return result
+}
+
+function decodePaletteBmp (data, offset, { width, height, colorDepth, colorCount }) {
+  if (colorDepth !== 8 && colorDepth !== 4 && colorDepth !== 2 && colorDepth !== 1) {
+    throw new Error(`A color depth of ${colorDepth} is not supported`)
+  }
+
+  const colors = new Bitmap(data, offset, { width: colorCount, height: 1, colorDepth: 32, format: 'BGRA' })
+  const xor = new Bitmap(data, colors.offset + colors.size, { width, height, colorDepth, format: 'C' })
+  const and = new Bitmap(data, xor.offset + xor.size, { width, height, colorDepth: 1, format: 'A' })
+
+  const result = Buffer.alloc(width * height * 4)
+
+  let idx = 0
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const colorIndex = xor.get(x, height - y - 1, 'C')
+
+      result[idx++] = colors.get(colorIndex, 0, 'R')
+      result[idx++] = colors.get(colorIndex, 0, 'G')
+      result[idx++] = colors.get(colorIndex, 0, 'B')
+      result[idx++] = and.get(x, height - y - 1, 'A') ? 0 : 255
+    }
+  }
+
+  return result
+}
+
 function decodeBmp ({ data, width, height }) {
   const headerSize = data.readUInt32LE(0)
   const colorDepth = data.readUInt16LE(14)
@@ -54,24 +122,9 @@ function decodeBmp ({ data, width, height }) {
     colorCount = (1 << colorDepth)
   }
 
-  const xor = new Bitmap(data, headerSize + (colorCount * 4), { width, height, colorDepth, format: 'BGRA' })
-  const and = new Bitmap(data, xor.offset + xor.size, { width, height, colorDepth: 1, format: 'A' })
-
-  const result = Buffer.alloc(width * height * 4)
-  const hasAlphaChannel = (colorDepth === 32)
-
-  if (colorDepth === 32 || colorDepth === 24) {
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        result[((y * height) + x) * 4 + 0] = xor.get(x, height - y - 1, 'R')
-        result[((y * height) + x) * 4 + 1] = xor.get(x, height - y - 1, 'G')
-        result[((y * height) + x) * 4 + 2] = xor.get(x, height - y - 1, 'B')
-        result[((y * height) + x) * 4 + 3] = (hasAlphaChannel ? xor : and).get(x, height - y - 1, 'A')
-      }
-    }
-  } else {
-    throw new Error(`A color depth of ${colorDepth} is currently not supported`)
-  }
+  const result = colorCount
+    ? decodePaletteBmp(data, headerSize, { width, height, colorDepth, colorCount })
+    : decodeTrueColorBmp(data, headerSize, { width, height, colorDepth })
 
   return { width, height, data: result }
 }
