@@ -6,23 +6,23 @@ const decodeIco = require('../')
 const source = fs.readFileSync(process.argv[2])
 const images = decodeIco(source)
 
-for (let idx = 0; idx < images.length; idx++) {
-  const image = images[idx]
-  const postfix = `-${idx++}.png`
-
-  if (image.type === 'png') {
-    fs.writeFile(`${process.argv[3]}${postfix}`, image.data, (err) => {
-      if (err) throw err
-    })
-
-    continue
-  }
-
-  lodepng.encode(image, (err, data) => {
-    if (err) throw err
-
-    fs.writeFile(`${process.argv[3]}${postfix}`, data, (err) => {
-      if (err) throw err
-    })
+function writeFile (path, data) {
+  return new Promise((resolve, reject) => {
+    fs.writeFile(path, data, (err) => (err ? reject(err) : resolve()))
   })
 }
+
+Promise.all(images.map((image, idx) => {
+  const postfix = `-${idx}.png`
+
+  const data = (image.type === 'png')
+    ? Promise.resolve(image.data)
+    : lodepng.encode(image)
+
+  return data.then((data) => {
+    return writeFile(`${process.argv[3]}${postfix}`, image.data)
+  })
+})).catch((err) => {
+  process.exitCode = 1
+  console.error(err.stack)
+})

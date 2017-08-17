@@ -13,22 +13,12 @@ const decodeIco = require('./')
 
 const testCases = globby.sync('fixtures/*.ico')
 
-function decodePng (data) {
-  return new Promise((resolve, reject) => {
-    lodepng.decode(data, (err, result) => {
-      if (err) return reject(err)
-
-      resolve(result)
-    })
-  })
-}
-
 function loadPng (filename) {
   return new Promise((resolve, reject) => {
     fs.readFile(filename, (err, data) => {
       if (err) return reject(err)
 
-      resolve(decodePng(data))
+      resolve(lodepng.decode(data))
     })
   })
 }
@@ -54,7 +44,7 @@ for (const testCase of testCases) {
           assert.strictEqual(actual.height, expected.height)
 
           const imageData = (actual.type === 'png')
-            ? decodePng(actual.data)
+            ? lodepng.decode(actual.data)
             : Promise.resolve(actual)
 
           return imageData.then((imageData) => {
