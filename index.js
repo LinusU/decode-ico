@@ -65,7 +65,9 @@ function decodeTrueColorBmp (data, offset, { width, height, colorDepth }) {
   }
 
   const xor = new Bitmap(data, offset, { width, height, colorDepth, format: 'BGRA' })
-  const and = new Bitmap(data, xor.offset + xor.size, { width, height, colorDepth: 1, format: 'A' })
+  const and = (colorDepth === 24)
+    ? new Bitmap(data, xor.offset + xor.size, { width, height, colorDepth: 1, format: 'A' })
+    : null
 
   const result = Buffer.alloc(width * height * 4)
 
