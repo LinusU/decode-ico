@@ -59,6 +59,14 @@ function isPng (data, offset) {
   )
 }
 
+function pngWidth (data, offset) {
+  return data.readUInt32BE(offset + 16)
+}
+
+function pngHeight (data, offset) {
+  return data.readUInt32BE(offset + 20)
+}
+
 function decodeTrueColorBmp (data, offset, { width, height, colorDepth }) {
   if (colorDepth !== 32 && colorDepth !== 24) {
     throw new Error(`A color depth of ${colorDepth} is not supported`)
@@ -174,10 +182,10 @@ module.exports = function decodeIco (input) {
     if (isPng(input, offset)) {
       return {
         data,
-        height,
+        height: pngHeight(input, offset),
         hotspot,
         type: 'png',
-        width
+        width: pngWidth(input, offset)
       }
     }
 
