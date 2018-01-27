@@ -115,14 +115,19 @@ function decodePaletteBmp (data, offset, { width, height, colorDepth, colorCount
   return result
 }
 
-function decodeBmp ({ data, width, height }) {
+function decodeBmp ({ data, width: iconWidth, height: iconHeight }) {
   const headerSize = data.readUInt32LE(0)
+  const bitmapWidth = (data.readUInt32LE(4) / 1) | 0
+  const bitmapHeight = (data.readUInt32LE(8) / 2) | 0
   const colorDepth = data.readUInt16LE(14)
   let colorCount = data.readUInt32LE(32)
 
   if (colorCount === 0 && colorDepth <= 8) {
     colorCount = (1 << colorDepth)
   }
+
+  const width = (bitmapWidth === 0 ? iconWidth : bitmapWidth)
+  const height = (bitmapHeight === 0 ? iconHeight : bitmapHeight)
 
   const result = colorCount
     ? decodePaletteBmp(data, headerSize, { width, height, colorDepth, colorCount })
