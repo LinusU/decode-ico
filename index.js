@@ -1,3 +1,5 @@
+const toDataView = require('to-data-view')
+
 function makeDivisibleByFour (input) {
   const rest = input % 4
 
@@ -46,22 +48,13 @@ class Bitmap {
   }
 }
 
-function isPng (data, offset) {
-  return (
-    data[offset + 0] === 137 &&
-    data[offset + 1] === 80 &&
-    data[offset + 2] === 78 &&
-    data[offset + 3] === 71 &&
-    data[offset + 4] === 13 &&
-    data[offset + 5] === 10 &&
-    data[offset + 6] === 26 &&
-    data[offset + 7] === 10
-  )
+function isPng (view, offset) {
+  return (view.getUint32(offset + 0) === 0x89504e47 && view.getUint32(offset + 4) === 0x0d0a1a0a)
 }
 
-function pngBitsPerPixel (data, offset) {
-  const bitDepth = data[offset + 24]
-  const colorType = data[offset + 25]
+function pngBitsPerPixel (view, offset) {
+  const bitDepth = view.getUint8(offset + 24)
+  const colorType = view.getUint8(offset + 25)
 
   if (colorType === 0) return bitDepth * 1
   if (colorType === 2) return bitDepth * 3
@@ -72,25 +65,25 @@ function pngBitsPerPixel (data, offset) {
   throw new Error('Invalid PNG colorType')
 }
 
-function pngWidth (data, offset) {
-  return data.readUInt32BE(offset + 16)
+function pngWidth (view, offset) {
+  return view.getUint32(offset + 16, false)
 }
 
-function pngHeight (data, offset) {
-  return data.readUInt32BE(offset + 20)
+function pngHeight (view, offset) {
+  return view.getUint32(offset + 20, false)
 }
 
-function decodeTrueColorBmp (data, offset, { width, height, colorDepth }) {
+function decodeTrueColorBmp (data, { width, height, colorDepth }) {
   if (colorDepth !== 32 && colorDepth !== 24) {
     throw new Error(`A color depth of ${colorDepth} is not supported`)
   }
 
-  const xor = new Bitmap(data, offset, { width, height, colorDepth, format: 'BGRA' })
+  const xor = new Bitmap(data, 0, { width, height, colorDepth, format: 'BGRA' })
   const and = (colorDepth === 24)
     ? new Bitmap(data, xor.offset + xor.size, { width, height, colorDepth: 1, format: 'A' })
     : null
 
-  const result = Buffer.alloc(width * height * 4)
+  const result = new Uint8Array(width * height * 4)
 
   let idx = 0
   for (let y = 0; y < height; y++) {
@@ -110,16 +103,16 @@ function decodeTrueColorBmp (data, offset, { width, height, colorDepth }) {
   return result
 }
 
-function decodePaletteBmp (data, offset, { width, height, colorDepth, colorCount }) {
+function decodePaletteBmp (data, { width, height, colorDepth, colorCount }) {
   if (colorDepth !== 8 && colorDepth !== 4 && colorDepth !== 2 && colorDepth !== 1) {
     throw new Error(`A color depth of ${colorDepth} is not supported`)
   }
 
-  const colors = new Bitmap(data, offset, { width: colorCount, height: 1, colorDepth: 32, format: 'BGRA' })
+  const colors = new Bitmap(data, 0, { width: colorCount, height: 1, colorDepth: 32, format: 'BGRA' })
   const xor = new Bitmap(data, colors.offset + colors.size, { width, height, colorDepth, format: 'C' })
   const and = new Bitmap(data, xor.offset + xor.size, { width, height, colorDepth: 1, format: 'A' })
 
-  const result = Buffer.alloc(width * height * 4)
+  const result = new Uint8Array(width * height * 4)
 
   let idx = 0
   for (let y = 0; y < height; y++) {
@@ -137,11 +130,11 @@ function decodePaletteBmp (data, offset, { width, height, colorDepth, colorCount
 }
 
 function decodeBmp ({ data, width: iconWidth, height: iconHeight }) {
-  const headerSize = data.readUInt32LE(0)
-  const bitmapWidth = (data.readUInt32LE(4) / 1) | 0
-  const bitmapHeight = (data.readUInt32LE(8) / 2) | 0
-  const colorDepth = data.readUInt16LE(14)
-  let colorCount = data.readUInt32LE(32)
+  const headerSize = data.getUint32(0, true)
+  const bitmapWidth = (data.getUint32(4, true) / 1) | 0
+  const bitmapHeight = (data.getUint32(8, true) / 2) | 0
+  const colorDepth = data.getUint16(14, true)
+  let colorCount = data.getUint32(32, true)
 
   if (colorCount === 0 && colorDepth <= 8) {
     colorCount = (1 << colorDepth)
@@ -150,59 +143,61 @@ function decodeBmp ({ data, width: iconWidth, height: iconHeight }) {
   const width = (bitmapWidth === 0 ? iconWidth : bitmapWidth)
   const height = (bitmapHeight === 0 ? iconHeight : bitmapHeight)
 
+  const bitmapData = new Uint8Array(data.buffer, data.byteOffset + headerSize, data.byteLength - headerSize)
+
   const result = colorCount
-    ? decodePaletteBmp(data, headerSize, { width, height, colorDepth, colorCount })
-    : decodeTrueColorBmp(data, headerSize, { width, height, colorDepth })
+    ? decodePaletteBmp(bitmapData, { width, height, colorDepth, colorCount })
+    : decodeTrueColorBmp(bitmapData, { width, height, colorDepth })
 
   return { width, height, data: result, colorDepth }
 }
 
 module.exports = function decodeIco (input) {
-  input = Buffer.isBuffer(input) ? input : Buffer.from(input)
+  const view = toDataView(input)
 
-  if (input.byteLength < 6) {
+  if (view.byteLength < 6) {
     throw new Error('Truncated header')
   }
 
-  if (input.readUInt16LE(0, true) !== 0) {
+  if (view.getUint16(0, true) !== 0) {
     throw new Error('Invalid magic bytes')
   }
 
-  const type = input.readUInt16LE(2, true)
+  const type = view.getUint16(2, true)
 
   if (type !== 1 && type !== 2) {
     throw new Error('Invalid image type')
   }
 
-  const length = input.readUInt16LE(4, true)
+  const length = view.getUint16(4, true)
 
-  if (input.byteLength < 6 + (16 * length)) {
+  if (view.byteLength < 6 + (16 * length)) {
     throw new Error('Truncated image list')
   }
 
   return Array.from({ length }, (_, idx) => {
-    const width = input.readUInt8(6 + (16 * idx) + 0, true)
-    const height = input.readUInt8(6 + (16 * idx) + 1, true)
-    const size = input.readUInt32LE(6 + (16 * idx) + 8, true)
-    const offset = input.readUInt32LE(6 + (16 * idx) + 12, true)
-    const data = input.slice(offset, offset + size)
+    const width = view.getUint8(6 + (16 * idx) + 0)
+    const height = view.getUint8(6 + (16 * idx) + 1)
+    const size = view.getUint32(6 + (16 * idx) + 8, true)
+    const offset = view.getUint32(6 + (16 * idx) + 12, true)
 
     const hotspot = (type !== 2 ? null : {
-      x: input.readUInt16LE(6 + (16 * idx) + 4, true),
-      y: input.readUInt16LE(6 + (16 * idx) + 6, true)
+      x: view.getUint16(6 + (16 * idx) + 4, true),
+      y: view.getUint16(6 + (16 * idx) + 6, true)
     })
 
-    if (isPng(input, offset)) {
+    if (isPng(view, offset)) {
       return {
-        bpp: pngBitsPerPixel(input, offset),
-        data,
-        height: pngHeight(input, offset),
+        bpp: pngBitsPerPixel(view, offset),
+        data: new Uint8Array(view.buffer, view.byteOffset + offset, size),
+        height: pngHeight(view, offset),
         hotspot,
         type: 'png',
-        width: pngWidth(input, offset)
+        width: pngWidth(view, offset)
       }
     }
 
+    const data = new DataView(view.buffer, view.byteOffset + offset, size)
     const bmp = decodeBmp({ data, width, height })
 
     return {

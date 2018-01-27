@@ -51,7 +51,7 @@ for (const testCase of testCases) {
 
           return imageData.then((imageData) => {
             assert.strictEqual(imageData.data.length, expected.data.length, 'The decoded data should match the target data (length)')
-            assert.ok(Buffer.compare(imageData.data, expected.data) === 0, 'The decoded data should match the target data (bytes)')
+            assert.ok(Buffer.compare(Buffer.from(imageData.data), expected.data) === 0, 'The decoded data should match the target data (bytes)')
           })
         })
       })
@@ -79,7 +79,7 @@ describe('Decoding of dino.cur', () => {
 
       return imageData.then((imageData) => {
         assert.strictEqual(imageData.data.length, expected.data.length, 'The decoded data should match the target data (length)')
-        assert.ok(Buffer.compare(imageData.data, expected.data) === 0, 'The decoded data should match the target data (bytes)')
+        assert.ok(Buffer.compare(Buffer.from(imageData.data), expected.data) === 0, 'The decoded data should match the target data (bytes)')
       })
     })
   })

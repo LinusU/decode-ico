@@ -6,6 +6,9 @@
   "scripts": {
     "test": "standard && mocha"
   },
+  "dependencies": {
+    "to-data-view": "^1.0.0"
+  },
   "devDependencies": {
     "globby": "^6.1.0",
     "lodepng": "^1.0.0",
