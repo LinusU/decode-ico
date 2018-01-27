@@ -147,8 +147,10 @@ module.exports = function decodeIco (input) {
     throw new Error('Invalid magic bytes')
   }
 
-  if (input.readUInt16LE(2, true) !== 1) {
-    throw new Error('Invalid magic bytes')
+  const type = input.readUInt16LE(2, true)
+
+  if (type !== 1 && type !== 2) {
+    throw new Error('Invalid image type')
   }
 
   const length = input.readUInt16LE(4, true)
@@ -164,10 +166,16 @@ module.exports = function decodeIco (input) {
     const offset = input.readUInt32LE(6 + (16 * idx) + 12, true)
     const data = input.slice(offset, offset + size)
 
+    const hotspot = (type !== 2 ? null : {
+      x: input.readUInt16LE(6 + (16 * idx) + 4, true),
+      y: input.readUInt16LE(6 + (16 * idx) + 6, true)
+    })
+
     if (isPng(input, offset)) {
       return {
         data,
         height,
+        hotspot,
         type: 'png',
         width
       }
@@ -178,6 +186,7 @@ module.exports = function decodeIco (input) {
     return {
       data: bmp.data,
       height: bmp.height,
+      hotspot,
       type: 'bmp',
       width: bmp.width
     }

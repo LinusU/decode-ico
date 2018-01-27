@@ -42,6 +42,7 @@ for (const testCase of testCases) {
         return loadPng(targetPaths[idx]).then((expected) => {
           assert.strictEqual(actual.width, expected.width)
           assert.strictEqual(actual.height, expected.height)
+          assert.strictEqual(actual.hotspot, null)
 
           const imageData = (actual.type === 'png')
             ? lodepng.decode(actual.data)
@@ -56,3 +57,29 @@ for (const testCase of testCases) {
     }
   })
 }
+
+describe('Decoding of dino.cur', () => {
+  let result
+  it('decodes the source', () => {
+    result = decodeIco(fs.readFileSync('fixtures/dino.cur'))
+  })
+
+  it(`extracts image #0`, () => {
+    const actual = result[0]
+
+    return loadPng('fixtures/dino-0.png').then((expected) => {
+      assert.strictEqual(actual.width, expected.width)
+      assert.strictEqual(actual.height, expected.height)
+      assert.deepStrictEqual(actual.hotspot, { x: 1, y: 2 })
+
+      const imageData = (actual.type === 'png')
+        ? lodepng.decode(actual.data)
+        : Promise.resolve(actual)
+
+      return imageData.then((imageData) => {
+        assert.strictEqual(imageData.data.length, expected.data.length, 'The decoded data should match the target data (length)')
+        assert.ok(Buffer.compare(imageData.data, expected.data) === 0, 'The decoded data should match the target data (bytes)')
+      })
+    })
+  })
+})
