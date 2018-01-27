@@ -59,6 +59,19 @@ function isPng (data, offset) {
   )
 }
 
+function pngBitsPerPixel (data, offset) {
+  const bitDepth = data[offset + 24]
+  const colorType = data[offset + 25]
+
+  if (colorType === 0) return bitDepth * 1
+  if (colorType === 2) return bitDepth * 3
+  if (colorType === 3) return bitDepth * 1
+  if (colorType === 4) return bitDepth * 2
+  if (colorType === 6) return bitDepth * 4
+
+  throw new Error('Invalid PNG colorType')
+}
+
 function pngWidth (data, offset) {
   return data.readUInt32BE(offset + 16)
 }
@@ -141,7 +154,7 @@ function decodeBmp ({ data, width: iconWidth, height: iconHeight }) {
     ? decodePaletteBmp(data, headerSize, { width, height, colorDepth, colorCount })
     : decodeTrueColorBmp(data, headerSize, { width, height, colorDepth })
 
-  return { width, height, data: result }
+  return { width, height, data: result, colorDepth }
 }
 
 module.exports = function decodeIco (input) {
@@ -181,6 +194,7 @@ module.exports = function decodeIco (input) {
 
     if (isPng(input, offset)) {
       return {
+        bpp: pngBitsPerPixel(input, offset),
         data,
         height: pngHeight(input, offset),
         hotspot,
@@ -192,6 +206,7 @@ module.exports = function decodeIco (input) {
     const bmp = decodeBmp({ data, width, height })
 
     return {
+      bpp: bmp.colorDepth,
       data: bmp.data,
       height: bmp.height,
       hotspot,

@@ -18,10 +18,10 @@ const source = fs.readFileSync('favicon.ico')
 const images = decodeIco(source)
 
 console.log(images[0])
-//=> { width: 16, height: 16, type: 'bmp', data: Buffer(...), hotspot: null }
+//=> { width: 16, height: 16, type: 'bmp', data: Buffer(...), bpp: 32, hotspot: null }
 
 console.log(images[1])
-//=> { width: 32, height: 32, type: 'bmp', data: Buffer(...), hotspot: null }
+//=> { width: 32, height: 32, type: 'bmp', data: Buffer(...), bpp: 32, hotspot: null }
 ```
 
 ## API
@@ -36,6 +36,7 @@ Each image has the following properties:
 - `height: Number` - The height of the image, in pixels
 - `type: String` - The type of image, will be one of `bmp` or `png`
 - `data: Buffer` - The data of the image, format depends on `type`, see below
+- `bpp: Number` - The color depth of the image as the number of bits used per pixel
 - `hotspot: null | Hotspot` - If the image is a cursor (`.cur`), this is the hotspot
 
 The format of the `data` parameter depends on the type of image. When the image is of type `bmp`, the `data` buffer will hold raw pixel data in the RGBA order, with integer values between 0 and 255 (included). When the type is `png`, the buffer will be png data.

@@ -43,6 +43,7 @@ for (const testCase of testCases) {
           assert.strictEqual(actual.width, expected.width)
           assert.strictEqual(actual.height, expected.height)
           assert.strictEqual(actual.hotspot, null)
+          assert([1, 4, 8, 16, 24, 32].indexOf(actual.bpp) !== -1)
 
           const imageData = (actual.type === 'png')
             ? lodepng.decode(actual.data)
