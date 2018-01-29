@@ -14,5 +14,8 @@
     "lodepng": "^1.0.0",
     "mocha": "^3.5.0",
     "standard": "^10.0.3"
+  },
+  "engines": {
+    "node": ">=4"
   }
 }
