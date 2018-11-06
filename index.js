@@ -1,5 +1,3 @@
-'use strict'
-
 const toDataView = require('to-data-view')
 
 function makeDivisibleByFour (input) {
@@ -9,12 +7,12 @@ function makeDivisibleByFour (input) {
 }
 
 class Bitmap {
-  constructor (data, offset, props) {
-    this.format = props.format
+  constructor (data, offset, { width, height, colorDepth, format }) {
+    this.format = format
     this.offset = offset
-    this.depth = props.colorDepth
-    this.stride = makeDivisibleByFour(props.width * this.depth / 8)
-    this.size = (this.stride * props.height)
+    this.depth = colorDepth
+    this.stride = makeDivisibleByFour(width * this.depth / 8)
+    this.size = (this.stride * height)
     this.data = data.slice(this.offset, this.offset + this.size)
 
     if (this.size !== this.data.byteLength) {
@@ -75,11 +73,7 @@ function pngHeight (view, offset) {
   return view.getUint32(offset + 20, false)
 }
 
-function decodeTrueColorBmp (data, props) {
-  const colorDepth = props.colorDepth
-  const height = props.height
-  const width = props.width
-
+function decodeTrueColorBmp (data, { width, height, colorDepth }) {
   if (colorDepth !== 32 && colorDepth !== 24) {
     throw new Error(`A color depth of ${colorDepth} is not supported`)
   }
@@ -109,12 +103,7 @@ function decodeTrueColorBmp (data, props) {
   return result
 }
 
-function decodePaletteBmp (data, props) {
-  const colorCount = props.colorCount
-  const colorDepth = props.colorDepth
-  const height = props.height
-  const width = props.width
-
+function decodePaletteBmp (data, { width, height, colorDepth, colorCount }) {
   if (colorDepth !== 8 && colorDepth !== 4 && colorDepth !== 2 && colorDepth !== 1) {
     throw new Error(`A color depth of ${colorDepth} is not supported`)
   }
@@ -140,7 +129,7 @@ function decodePaletteBmp (data, props) {
   return result
 }
 
-function decodeBmp (data, iconWidth, iconHeight) {
+function decodeBmp ({ data, width: iconWidth, height: iconHeight }) {
   const headerSize = data.getUint32(0, true)
   const bitmapWidth = (data.getUint32(4, true) / 1) | 0
   const bitmapHeight = (data.getUint32(8, true) / 2) | 0
@@ -209,7 +198,7 @@ module.exports = function decodeIco (input) {
     }
 
     const data = new DataView(view.buffer, view.byteOffset + offset, size)
-    const bmp = decodeBmp(data, width, height)
+    const bmp = decodeBmp({ data, width, height })
 
     return {
       bpp: bmp.colorDepth,
