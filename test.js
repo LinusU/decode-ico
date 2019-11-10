@@ -51,7 +51,7 @@ for (const testCase of testCases) {
 
           return imageData.then((imageData) => {
             assert.strictEqual(imageData.data.length, expected.data.length, 'The decoded data should match the target data (length)')
-            assert.ok(Buffer.compare(Buffer.from(imageData.data), expected.data) === 0, 'The decoded data should match the target data (bytes)')
+            assert.deepStrictEqual(new Uint8Array(imageData.data), new Uint8Array(expected.data), 'The decoded data should match the target data (bytes)')
           })
         })
       })
@@ -65,7 +65,7 @@ describe('Decoding of dino.cur', () => {
     result = decodeIco(fs.readFileSync('fixtures/dino.cur'))
   })
 
-  it(`extracts image #0`, () => {
+  it('extracts image #0', () => {
     const actual = result[0]
 
     return loadPng('fixtures/dino-0.png').then((expected) => {
@@ -79,7 +79,7 @@ describe('Decoding of dino.cur', () => {
 
       return imageData.then((imageData) => {
         assert.strictEqual(imageData.data.length, expected.data.length, 'The decoded data should match the target data (length)')
-        assert.ok(Buffer.compare(Buffer.from(imageData.data), expected.data) === 0, 'The decoded data should match the target data (bytes)')
+        assert.deepStrictEqual(new Uint8Array(imageData.data), new Uint8Array(expected.data), 'The decoded data should match the target data (bytes)')
       })
     })
   })
