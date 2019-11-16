@@ -1,5 +1,6 @@
 const toDataView = require('to-data-view')
 const decodeBmp = require('decode-bmp')
+const ImageData = require('@canvas/image-data')
 
 function isPng (view, offset) {
   return (view.getUint32(offset + 0) === 0x89504e47 && view.getUint32(offset + 4) === 0x0d0a1a0a)
@@ -73,14 +74,8 @@ module.exports = function decodeIco (input) {
 
     const data = new Uint8Array(view.buffer, view.byteOffset + offset, size)
     const bmp = decodeBmp(data, { width, height, icon: true })
+    const info = { bpp: bmp.colorDepth, hotspot, type: 'bmp' }
 
-    return {
-      bpp: bmp.colorDepth,
-      data: bmp.data,
-      height: bmp.height,
-      hotspot,
-      type: 'bmp',
-      width: bmp.width
-    }
+    return Object.assign(new ImageData(bmp.data, bmp.width, bmp.height), info)
   })
 }

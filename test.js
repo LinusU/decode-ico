@@ -8,6 +8,7 @@ const assert = require('assert')
 
 const globby = require('globby')
 const lodepng = require('lodepng')
+const ImageData = require('@canvas/image-data')
 
 const decodeIco = require('./')
 
@@ -39,6 +40,17 @@ for (const testCase of testCases) {
       it(`extracts image #${idx}`, () => {
         const actual = result[idx]
 
+        assert(actual.type === 'bmp' || actual.type === 'png')
+
+        if (actual.type === 'bmp') {
+          assert(actual instanceof ImageData)
+          assert(actual.data instanceof Uint8ClampedArray)
+        }
+
+        if (actual.type === 'png') {
+          assert(actual.data instanceof Uint8Array)
+        }
+
         return loadPng(targetPaths[idx]).then((expected) => {
           assert.strictEqual(actual.width, expected.width)
           assert.strictEqual(actual.height, expected.height)
@@ -51,7 +63,7 @@ for (const testCase of testCases) {
 
           return imageData.then((imageData) => {
             assert.strictEqual(imageData.data.length, expected.data.length, 'The decoded data should match the target data (length)')
-            assert.deepStrictEqual(new Uint8Array(imageData.data), new Uint8Array(expected.data), 'The decoded data should match the target data (bytes)')
+            assert.deepStrictEqual(imageData.data, expected.data, 'The decoded data should match the target data (bytes)')
           })
         })
       })
@@ -79,7 +91,7 @@ describe('Decoding of dino.cur', () => {
 
       return imageData.then((imageData) => {
         assert.strictEqual(imageData.data.length, expected.data.length, 'The decoded data should match the target data (length)')
-        assert.deepStrictEqual(new Uint8Array(imageData.data), new Uint8Array(expected.data), 'The decoded data should match the target data (bytes)')
+        assert.deepStrictEqual(imageData.data, expected.data, 'The decoded data should match the target data (bytes)')
       })
     })
   })
