@@ -12,6 +12,6 @@ declare interface ImageData {
   width: number
 }
 
-declare function decodeIco (source: ArrayBuffer | Uint8Array): ImageData[]
+declare function decodeIco (source: ArrayBuffer | Int8Array | Uint8Array | Uint8ClampedArray): ImageData[]
 
 export = decodeIco
