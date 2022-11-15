@@ -36,17 +36,17 @@ module.exports = function decodeIco (input) {
   if (isPng(view, 0)) {
     // the file is actually a png masquerading as an ico
 
-    return [
-      {
-        bpp: pngBitsPerPixel(view, 0),
-        data: new Uint8Array(view.buffer, view.byteOffset, view.byteLength),
-        height: pngHeight(view, 0),
-        hotspot: null,
-        type: 'png',
-        width: pngWidth(view, 0)
-      }
-    ]
-  } else if (view.getUint16(0, true) !== 0) {
+    return [{
+      bpp: pngBitsPerPixel(view, 0),
+      data: new Uint8Array(view.buffer, view.byteOffset, view.byteLength),
+      height: pngHeight(view, 0),
+      hotspot: null,
+      type: 'png',
+      width: pngWidth(view, 0)
+    }]
+  }
+
+  if (view.getUint16(0, true) !== 0) {
     throw new Error('Invalid magic bytes')
   }
 
